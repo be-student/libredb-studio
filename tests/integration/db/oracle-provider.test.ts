@@ -1988,6 +1988,38 @@ describe("OracleProvider", () => {
       expect(overview.activeConnections).toBe(8);
       expect(overview.tableCount).toBe(10);
     });
+
+    test("a size read with no result row leaves overview size absent", async () => {
+      mockExecuteFn = async (sql: string) => {
+        const upper = sql.toUpperCase();
+        if (upper.includes("USER_SEGMENTS") && upper.includes("SUM(BYTES)")) {
+          return { rows: [], metaData: [{ name: "TOTAL" }] };
+        }
+        return defaultExecute(sql);
+      };
+
+      await provider.connect();
+      const overview = await provider.getOverview();
+
+      expect("databaseSizeBytes" in overview).toBe(false);
+      expect(overview.databaseSize).toBe("N/A");
+    });
+
+    test("a non-finite size leaves overview size absent", async () => {
+      mockExecuteFn = async (sql: string) => {
+        const upper = sql.toUpperCase();
+        if (upper.includes("USER_SEGMENTS") && upper.includes("SUM(BYTES)")) {
+          return { rows: [{ TOTAL: Number.POSITIVE_INFINITY }], metaData: [{ name: "TOTAL" }] };
+        }
+        return defaultExecute(sql);
+      };
+
+      await provider.connect();
+      const overview = await provider.getOverview();
+
+      expect("databaseSizeBytes" in overview).toBe(false);
+      expect(overview.databaseSize).toBe("N/A");
+    });
   });
 
   // =========================================================================

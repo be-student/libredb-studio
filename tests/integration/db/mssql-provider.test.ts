@@ -1580,6 +1580,36 @@ describe("MSSQLProvider", () => {
       expect(overview.databaseSize).toBe("0 B");
     });
 
+    test("a size read with no result row leaves overview size absent", async () => {
+      mockQueryFn = async (sql: string) => {
+        if (sql.toUpperCase().includes("SYS.DATABASE_FILES")) {
+          return { recordset: [], rowsAffected: [0] };
+        }
+        return defaultQuery(sql);
+      };
+
+      await provider.connect();
+      const overview = await provider.getOverview();
+
+      expect("databaseSizeBytes" in overview).toBe(false);
+      expect(overview.databaseSize).toBe("N/A");
+    });
+
+    test("a non-finite size leaves overview size absent", async () => {
+      mockQueryFn = async (sql: string) => {
+        if (sql.toUpperCase().includes("SYS.DATABASE_FILES")) {
+          return { recordset: [{ size_bytes: Number.POSITIVE_INFINITY }], rowsAffected: [1] };
+        }
+        return defaultQuery(sql);
+      };
+
+      await provider.connect();
+      const overview = await provider.getOverview();
+
+      expect("databaseSizeBytes" in overview).toBe(false);
+      expect(overview.databaseSize).toBe("N/A");
+    });
+
     test("Azure SQL detection from hostname", () => {
       const azureProvider = new MSSQLProvider({
         ...baseConfig,
