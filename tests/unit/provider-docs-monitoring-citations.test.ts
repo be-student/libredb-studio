@@ -238,7 +238,9 @@ describe("provider docs rewritten this round: code cited by name, whole file", (
   }
 
   test("provider docs name the factory's entry point rather than a line inside it", () => {
-    for (const doc of ["docs/providers/mssql.md", "docs/providers/redis.md"]) {
+    for (const { doc } of NAMED_CITATIONS.filter((citation) =>
+      read(citation.doc).includes("`createDatabaseProvider()`"),
+    )) {
       expect(read(doc)).toMatch(
         /`createDatabaseProvider\(\)`\s*\(\[`factory\.ts`\]\(\.\.\/\.\.\/src\/lib\/db\/factory\.ts\)\)/,
       );
